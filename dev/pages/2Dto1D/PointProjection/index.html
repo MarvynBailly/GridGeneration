@@ -26,4 +26,41 @@ end</code></pre><h4 id="Step-2-Spacing"><a class="docs-heading-anchor" href="#St
     end
 
     return sol_opt, sol
-end</code></pre><h4 id="Step-3-1D-to-2D"><a class="docs-heading-anchor" href="#Step-3-1D-to-2D">Step 3 - 1D to 2D</a><a id="Step-3-1D-to-2D-1"></a><a class="docs-heading-anchor-permalink" href="#Step-3-1D-to-2D" title="Permalink"></a></h4><p>And finally let&#39;s project the points back onto the boundary</p><ul><li>Extract solution <code>x_sol = sol_opt[1,:]</code></li><li>For each <code>x</code> in <code>x_sol</code><ul><li>determine <code>i</code> such that <span>$x \in [\text{xs}_i, \text{xs}_{i+1}]$</span></li><li>compute <span>$\eta = \frac{|x - \text{xs}_i|}{|\text{xs}_{i+1} - \text{xs}_i|}$</span></li><li>Interpolate <code>x</code> onto <span>$\Gamma_i$</span> according to <span>$\eta$</span></li></ul></li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../MetricReformulation/">« Metric Reformulation</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Wednesday 6 August 2025 16:18">Wednesday 6 August 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><h4 id="Step-3-1D-to-2D"><a class="docs-heading-anchor" href="#Step-3-1D-to-2D">Step 3 - 1D to 2D</a><a id="Step-3-1D-to-2D-1"></a><a class="docs-heading-anchor-permalink" href="#Step-3-1D-to-2D" title="Permalink"></a></h4><p>And finally let&#39;s project the points back onto the boundary</p><ul><li>Extract solution <code>x_sol = sol_opt[1,:]</code></li><li>For each <code>x</code> in <code>x_sol</code><ul><li>determine <code>i</code> such that <span>$x \in [\text{xs}_i, \text{xs}_{i+1}]$</span></li><li>compute <span>$\eta = \frac{|x - \text{xs}_i|}{|\text{xs}_{i+1} - \text{xs}_i|}$</span></li><li>Interpolate <code>x</code> onto <span>$\Gamma_i$</span> according to <span>$\eta$</span></li></ul></li></ul><p>The algorithm for this can be pretty straightforward if we assert that the incoming <code>xs</code> is increasing. We have already taken care of that. Let&#39;s also add clamping to the edges to make sure that the start and ending points don&#39;t move.</p><pre><code class="language-julia hljs">function ProjectBoundary1Dto2D(boundary, points, xs)
+    projectedPoints = zeros(2, length(xs))
+    for (i, pnt) in enumrate(points)
+        intervalIndex = FindContainingIntervalIndex(pnt, xs)
+        dist = pnt - xs[intervalIndex]
+        normalDist = dist / (xs[intervalIndex + 1] - xs[intervalIndex])
+        projectPoint = ProjectPointOntoBoundary(normalDist, intervalIndex, boundary)
+        projectedPoints[i] = projectPoint
+    end
+    return projectedPoints
+end</code></pre><p>with the two helper functions</p><pre><code class="language-julia hljs">function FindContainingIntervalIndex(pnt, dist)
+    # assert that dist is increasing
+    index = - 1
+    
+    # clamp
+    if pnt &lt; dist[1]
+        index = 1
+    end
+
+    if pnt &gt; dist[end]
+        index = length(dist) - 1
+    end
+
+    for (i,d) in enumerate(dist)
+        if d &gt; pnt
+            index = i - 1
+        end
+    end
+
+    return index
+end
+
+function ProjectPointOntoBoundary(s, ind, boundary)
+    # interpolate boundary[ind] and boundary[ind + 1] with s
+    projectedPoint = s * boundary[ind] + (1 - s) * boundary[ind+1]
+    return projectPoint
+end
+</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../MetricReformulation/">« Metric Reformulation</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Thursday 7 August 2025 01:20">Thursday 7 August 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
