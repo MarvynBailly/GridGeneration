@@ -281,4 +281,61 @@ end
     visit(blockId)
 
     return include_start ? collect(seen) : [b for b in seen if b != blockId]
-end</code></pre><h3 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h3><p>Putting this all together and using our custom metric creator, we get the following results:</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../nosplitting/">« Single Block with No Splitting</a><a class="docs-footer-nextpage" href="../../MultiBlock/multiblock/">Multi-Block Input »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Sunday 17 August 2025 19:20">Sunday 17 August 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><h3 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h3><p>Putting this all together and using our custom metric creator, we can use the code as follows:</p><h4 id="Example-1"><a class="docs-heading-anchor" href="#Example-1">Example 1</a><a id="Example-1-1"></a><a class="docs-heading-anchor-permalink" href="#Example-1" title="Permalink"></a></h4><pre><code class="language-julia hljs">include(&quot;GridGeneration.jl&quot;)
+
+#################
+# Load in initial single block grid
+#################
+# load in the initial grid - no trailing edge 
+initialGrid = GetAirfoilGrid(airfoilPath=&quot;examples/single_block_ns/airfoil/data/A-airfoil.txt&quot;, radius = 2)
+# throw away trailing edge stuff
+airfoilGrid = initialGrid[:, 101:end-100, :]
+airfoil = airfoilGrid[:,:,1]
+
+# define the boundary information
+bndInfo = getBoundaryConditions(airfoilGrid)
+
+# define interInfo
+interInfo = Any[]
+
+#################
+# Make a custom metric
+#################
+
+metricFunc1 = make_getMetric(airfoil;
+    A_airfoil = 50.0,  ℓ_airfoil = 0.5, p_airfoil = 2,   
+    A_origin  = 500.0,  ℓ_origin  = 0.1, p_origin  = 10,   
+    floor     = 1e-4,  origin_center=(1, -0.6),
+profile   = :rational)  # or :gauss
+
+metricFunc2 = make_getMetric(airfoil;
+    A_airfoil = 0.0,  ℓ_airfoil = 0.5, p_airfoil = 2,   
+    A_origin  = 700.0,  ℓ_origin  = 0.1, p_origin  = 10,   
+    floor     = 1e-4,  origin_center=(0.5, 0.1),
+profile   = :rational)  # or :gauss
+
+metricFunc = (x,y) -&gt; metricFunc1(x,y) .+ metricFunc2(x,y)
+
+
+
+#################
+# Add split locations 
+#################
+
+
+splitLocations = [
+    [ 300, 500 ],   # split along the x axis
+    [ 40, 80 ]      # split along the y axis
+]
+
+#################
+## Split the blocks
+#################
+
+blocks, bndInfo, interInfo = GridGeneration.SplitBlock(airfoilGrid, splitLocations, bndInfo, interInfo)
+
+#################
+##### Run the solver on them
+#################
+
+blocks, bndInfo, interInfo = GridGeneration.SolveAllBlocks(metricFunc, blocks, bndInfo, interInfo)</code></pre><p>which yields</p><p><img src="../../../assets/images/SingleBlock/examples1.svg" alt="example1"/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../nosplitting/">« Single Block with No Splitting</a><a class="docs-footer-nextpage" href="../../MultiBlock/multiblock/">Multi-Block Input »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Sunday 17 August 2025 19:34">Sunday 17 August 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
